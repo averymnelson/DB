@@ -2,9 +2,16 @@ import csv
 import os.path
 
 class DB:
-
+        # recordSize: the number of bytes in a record
+        # numRecords: the number of sorted records in the .data file
+        # dataFileptr: the fileptr for the opened data file
+        # any others you want
+    
     #default constructor
     def __init__(self):
+        # parameter(s): none
+        # returns: nothing
+        # purpose: inits instance variables, e.g., sets numRecords and recordSize to 0, dataFileptr to NULL
         self.filestream = None
         self.num_record = 0
         self.Id_size=10
@@ -48,39 +55,69 @@ class DB:
             for dict in data_list:
                 writeDB(outfile,dict)
 
-    #read the database
-    def readDB(self, filename, DBsize, rec_size):
-        self.filestream = filename + ".data"
-        self.record_size = DBsize
-        self.rec_size = rec_size
+    # #read the database
+    # def readDB(self, filename, DBsize, rec_size):
+    #     self.filestream = filename + ".data"
+    #     self.record_size = DBsize
+    #     self.rec_size = rec_size
         
-        if not os.path.isfile(self.filestream):
-            print(str(self.filestream)+" not found")
-        else:
-            self.text_filename = open(self.filestream, 'r+')
+    #     if not os.path.isfile(self.filestream):
+    #         print(str(self.filestream)+" not found")
+    #     else:
+    #         self.text_filename = open(self.filestream, 'r+')
 
-    #read record method
-    def getRecord(self, recordNum):
+    # #read record method
+    # def getRecord(self, recordNum):
 
-        self.flag = False
-        id = experience = marriage = wage = industry = "None"
+    #     self.flag = False
+    #     id = experience = marriage = wage = industry = "None"
 
-        if recordNum >=0 and recordNum < self.record_size:
-            self.text_filename.seek(0,0)
-            self.text_filename.seek(recordNum*self.rec_size)
-            line= self.text_filename.readline().rstrip('\n')
-            self.flag = True
+    #     if recordNum >=0 and recordNum < self.record_size:
+    #         self.text_filename.seek(0,0)
+    #         self.text_filename.seek(recordNum*self.rec_size)
+    #         line= self.text_filename.readline().rstrip('\n')
+    #         self.flag = True
         
-        if self.flag:
-            id = line[0:10]
-            experience = line[10:15]
-            marriage = line[15:20]
-            wage = line[20:40]
-            industry = line[40:70]
-            self.record = dict({"ID":id,"experience":experience,"marriage":marriage,"wages":wage,"industry":industry})
+    #     if self.flag:
+    #         id = line[0:10]
+    #         experience = line[10:15]
+    #         marriage = line[15:20]
+    #         wage = line[20:40]
+    #         industry = line[40:70]
+    #         self.record = dict({"ID":id,"experience":experience,"marriage":marriage,"wages":wage,"industry":industry})
+    
+    def readRecord(self):
+        # readRecord: a private helper method (it may be public if you need to call it from the main program)
+        # parameter(s): recordNum, &passengerId, &fname, &lname, &age, &ticketNum, &fare, &date
+        # returns: int (-1 if the recordNum is invalid, 0 if it is valid but is an empty record, 1 the read was successful)
+        # purpose: if db is open and recordNum is valid, it seeks to the beginning of recordNum in the already opened file and reads the key, if the key is not _empty_, it reads the rest of the record and fills the parameters.
+    
+    def writeRecord(self):
+        # writeRecord: a private helper method (it may be public if you need to call it from the main program)
+        # parameter(s): recordNum, passengerId, fname, lname, age, ticketNum, fare, date
+        # returns: int (-1 if the recordNum is invalid, 0 if it is valid and we overwrote an empty record, 1 if we overwrote a non-empty record
+        # purpose: Using formatted writes, writes a fixed length record at the location indicated by recordNum.
+
+    def updateRecord(self):
+        # parameter(s): passengerId, fname, lname, age, ticketNum, fare, date
+        # returns: Boolean, true if record is updated, false otherwise
+        # purpose: if db is open, it uses binarySearch to locate the record. It then uses writeRecord to overwrite it. NOTE: it assumes that the key (passengerId) will not be changed or binarySearch will break.
+   
+    def deleteRecord(self):
+        # parameter(s): passengerId
+        # returns: Boolean, true if record is deleted, false otherwise
+        # purpose: if db is open, it uses binarySearch to locate the record. It then uses writeRecord to overwrite it with default (empty) values. It sets the passengerId to _empty_.
+    
+    def addRecord(self):
+        # parameter(s): passengerId, fname, lname, age, ticketNum, fare, date
+        # returns: Boolean, true if db open, false otherwise
+        # purpose: if db is open, it overwrites an empty record in the right location, if it exists. BONUS (10%): If there is no empty record in the right location to use, then it closes the file, rewrites it alternating real and empty records of the same size (including the new record), rewrites the config file with the new number of records, and reopens the database.
 
     #Binary Search by record id
     def binarySearch(self, input_ID):
+        # parameter(s): passengerId, &recordNum, &fname, &lname, &age, &ticketNum, &fare, &date
+        # returns: Boolean, true if the passengerId was found, false if not
+        # purpose: if db open, it uses seeks to perform binary search on the sorted file to locate the id. It fills in the parameters with the data (if found), otherwise it sets them to default values. recordNum is set to the location where the record would be, if it was in the datafile
         low = 0
         high = self.record_size - 1
         found = False
@@ -158,9 +195,20 @@ class DB:
         return -1  # No non-empty record found
 
 
-
-
+    def OpenDB(self, name):
+        # parameter: name to use
+        # returns: boolean of success
+        # purpose:open config file to read numRecords and recordSize then closes it again. opens data file in read/write mode and sets dataFileptr to open file, updates values in other instance variables. 
+        
     #close the database
     def CloseDB(self):
-
         self.text_filename.close()
+        # parameter(s): none
+        # returns: nothing
+        # purpose: resets instance variables, e.g., sets numRecords and recordSize to 0, closes the datafile, sets dataFileptr to NULL, etc.
+    
+    def isOpen(self):
+        # parameter(s): none
+        # returns: Boolean (true if database is Open, false if not)
+        # purpose: allow main program to check the status of the DB
+
