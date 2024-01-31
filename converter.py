@@ -1,4 +1,4 @@
 import pandas as pd
 
-df = pd.read_csv("input.txt",sep='\s+',header = None)
-df.to_csv('input.csv',header=None)
+df = pd.read_csv("input.txt",sep=',', header = None)
+df.to_csv('SmallTitanic.csv',header=None)
