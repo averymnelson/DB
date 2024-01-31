@@ -1,5 +1,7 @@
 import csv
 import os.path
+import pandas as pd
+
 
 # ID, fname, lname, age, ticketnum, fare, purchased
 class DB:
@@ -18,37 +20,51 @@ class DB:
         self.dataFileptr = None
         self.name = title
         self.status = False
+        self.recordloc = False
 
-    def read_record(self, recordNum, passengerId, fname, lname, age, ticketNum, fare, date):
-        self.ID = recordNum
+    def read_src(self, name):
+        data = pd.read_csv(name, sep=',')
+        df = pd.DataFrame(data)
+        df.columns = ['PASSENGER_ID', 'FIRST_NAME', 'LAST_NAME', 'AGE', 'TICKET_NUM', 'FARE', 'DATE_OF_PURCHASE']
+
+        def write_src(name):
+            filestream.write("{:{width}.{width}}".format(dict["ID"], width=self.Id_size))
+            filestream.write("{:{width}.{width}}".format(dict["experience"], width=self.Experience_size))
+            filestream.write("{:{width}.{width}}".format(dict["marriage"], width=self.Marriage_size))
+            filestream.write("{:{width}.{width}}".format(dict["wages"], width=self.Wage_size))
+            filestream.write("{:{width}.{width}}".format(dict["industry"], width=self.Industry_size))
+            filestream.write("\n")
+
+    def read_record(self, recordnum, passengerid, fname, lname, age, ticketnum, fare, date):
+        self.ID = recordnum
         # parse
         # readRecord: a private helper method (it may be public if you need to call it from the main program)
-        # parameter(s): recordNum, &passengerId, &fname, &lname, &age, &ticketNum, &fare, &date
+        # parameter(s): recordNum, &passengerid, &fname, &lname, &age, &ticketnum, &fare, &date
         # returns: int (-1 if the recordNum is invalid, 0 if it is valid but is an empty record, 1 the read was successful)
         # purpose: if db is open and recordNum is valid, it seeks to the beginning of recordNum in the already opened file and reads the key, if the key is not _empty_, it reads the rest of the record and fills the parameters.
 
-    def write_record(self, recordNum, passengerId, fname, lname, age, ticketNum, fare, date):
-        self.num = recordNum
+    def write_record(self, recordnum, passengerid, fname, lname, age, ticketnum, fare, date):
+        self.num = recordnum
         # writeRecord: a private helper method (it may be public if you need to call it from the main program)
-        # parameter(s): recordNum, passengerId, fname, lname, age, ticketNum, fare, date
+        # parameter(s): recordNum, passengerid, fname, lname, age, ticketnum, fare, date
         # returns: int (-1 if the recordNum is invalid, 0 if it is valid and we overwrote an empty record, 1 if we overwrote a non-empty record
         # purpose: Using formatted writes, writes a fixed length record at the location indicated by recordNum.
 
-    def update_record(self, passengerId, fname, lname, age, ticketNum, fare, date):
-        self.ID = passengerId
-    # parameter(s): passengerId, fname, lname, age, ticketNum, fare, date
+    def update_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
+        self.ID = passengerid
+    # parameter(s): passengerid, fname, lname, age, ticketnum, fare, date
     # returns: Boolean, true if record is updated, false otherwise
-    # purpose: if db is open, it uses binarySearch to locate the record. It then uses writeRecord to overwrite it. NOTE: it assumes that the key (passengerId) will not be changed or binarySearch will break.
+    # purpose: if db is open, it uses binarySearch to locate the record. It then uses writeRecord to overwrite it. NOTE: it assumes that the key (passengerid) will not be changed or binarySearch will break.
 
-    def delete_record(self, passengerId):
-        self.ID = passengerId
-        # parameter(s): passengerId
+    def delete_record(self, passengerid):
+        self.ID = passengerid
+        # parameter(s): passengerid
         # returns: Boolean, true if record is deleted, false otherwise
-        # purpose: if db is open, it uses binarySearch to locate the record. It then uses writeRecord to overwrite it with default (empty) values. It sets the passengerId to _empty_.
+        # purpose: if db is open, it uses binarySearch to locate the record. It then uses writeRecord to overwrite it with default (empty) values. It sets the passengerid to _empty_.
 
-    def add_record(self, passengerId, fname, lname, age, ticketNum, fare, date):
-        self.ID = passengerId
-    # parameter(s): passengerId, fname, lname, age, ticketNum, fare, date
+    def add_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
+        self.ID = passengerid
+    # parameter(s): passengerid, fname, lname, age, ticketnum, fare, date
     # returns: Boolean, true if db open, false otherwise
     # purpose: if db is open, it overwrites an empty record in the right location, if it exists. BONUS (10%): If there is no empty record in the right location to use, then it closes the file, rewrites it alternating real and empty records of the same size (including the new record), rewrites the config file with the new number of records, and reopens the database.
 
