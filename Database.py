@@ -10,7 +10,7 @@ class DB:
     # any others you want
 
     # default constructor
-    def __init__(self, title):
+    def __init__(self):
         # parameter(s): none
         # returns: nothing
         # purpose: inits instance variables, e.g., sets numRecords and recordSize to 0, dataFileptr to NULL
@@ -116,9 +116,26 @@ class DB:
             print(str(self.filestream) + " not found")
         else:
             self.text_filename = open(self.filestream, 'r+')
+
     def open(self, name):
         successful = False
-        
+        try:
+            # Open config file to read numRecords and recordSize
+            with open(f"{name}.config", 'r') as config_file:
+                self.numRecords = int(config_file.readline().strip())
+                self.recordSize = int(config_file.readline().strip())
+
+            # Open data file in read/write mode and set dataFileptr
+            self.dataFileptr = open(f"{name}.data", 'r+')
+
+            # Update values in other instance variables
+            # For example, you might want to do something like this:
+            # self.some_other_instance_variable = some_value
+
+            return True  # Return True if successful
+        except Exception as e:
+            print(f"Error opening database: {e}")
+            return False  # Return False if unsuccessful
         # parameter: name to use
         # returns: boolean of success
         # purpose:open config file to read numRecords and recordSize then closes it again. opens data file in read/write mode and sets dataFileptr to open file, updates values in other instance variables.
@@ -130,7 +147,11 @@ class DB:
     # parameter(s): none
     # returns: nothing
     # purpose: resets instance variables, e.g., sets numRecords and recordSize to 0, closes the datafile, sets dataFileptr to NULL, etc.
-    def display_menu(self):
+
+
+def main():
+    db = DB()
+    while True:
         print("Menu of operations:")
         print("1) Create New Database")
         print("2) Open Database")
@@ -141,56 +162,50 @@ class DB:
         print("7) Update Record")
         print("8) Delete Record")
         print("9) Quit")
+        choice = input("Enter your choice: ")
 
-
-    def main(self):
-        db = DB()
-        while True:
-            self.display_menu()
-            choice = input("Enter your choice: ")
-
-            if choice == '1':
-                db.createDB()
-                pass  # Implement this option
-            elif choice == '2':
-                # Open database
-                name = input("Enter the name of the database to open: ")
-                if db.isOpen():
-                    print("Another database is already open. Please close it first.")
-                else:
-                    if db.open(name):
-                        print("Database opened successfully.")
-                    else:
-                        print("Failed to open database.")
-            elif choice == '3':
-                # Close database
-                if db.isOpen():
-                    db.close_db()
-                    print("Database closed.")
-                else:
-                    print("No database is currently open.")
-            elif choice == '4':
-                # Read record
-                pass  # Implement this option
-            elif choice == '5':
-                # Display record
-                pass  # Implement this option
-            elif choice == '6':
-                # Create report
-                pass  # Implement this option
-            elif choice == '7':
-                # Update record
-                pass  # Implement this option
-            elif choice == '8':
-                # Delete record
-                pass  # Implement this option
-            elif choice == '9':
-                # Quit
-                print("Exiting program.")
-                break
+        if choice == '1':
+            db.createDB()
+            pass  # Implement this option
+        elif choice == '2':
+            # Open database
+            name = input("Enter the name of the database to open: ")
+            if db.isOpen():
+                print("Another database is already open. Please close it first.")
             else:
-                print("Invalid choice. Please try again.")
+                if db.open(name):
+                    print("Database opened successfully.")
+                else:
+                    print("Failed to open database.")
+        elif choice == '3':
+            # Close database
+            if db.isOpen():
+                db.close_db()
+                print("Database closed.")
+            else:
+                print("No database is currently open.")
+        elif choice == '4':
+            # Read record
+            pass  # Implement this option
+        elif choice == '5':
+            # Display record
+            pass  # Implement this option
+        elif choice == '6':
+            # Create report
+            pass  # Implement this option
+        elif choice == '7':
+            # Update record
+            pass  # Implement this option
+        elif choice == '8':
+            # Delete record
+            pass  # Implement this option
+        elif choice == '9':
+            # Quit
+            print("Exiting program.")
+            break
+        else:
+            print("Invalid choice. Please try again.")
 
 
-    if __name__ == "__main__":
-        main()
+if __name__ == "__main__":
+    main()
