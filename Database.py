@@ -15,14 +15,15 @@ class DB:
         # returns: nothing
         # purpose: inits instance variables, e.g., sets numRecords and recordSize to 0, dataFileptr to NULL
         self.filestream = None
-        self.numRecords = 72
-        self.record_size = 80
+        self.numRecords = 0
+        self.record_size = 75
+        self.total_size = 0
         self.name = None
         self.data = None
-        self.isOpen = False
+        self.isopen = False
     
     def isOpen(self):
-        return self.isOpen
+        return self.isopen
     
     def read_src(self, name):
         self.name = name
@@ -30,58 +31,78 @@ class DB:
         self.data = conv.get_df()
         print(self.data)
 
-    def readCsv(csv_file):
-        with open(csv_file, 'r') as file:
-            reader = csv.reader(file)
-            for row in reader:
-                yield row
-
     def write_record(self, data, output_file, record_size):
         with open(output_file, 'a') as file:
-            formatted_data = ','.join(map(str, data))
+            formatted_data = ','.join(str(value) for value in data)
             file.write(formatted_data.ljust(record_size) + '\n')
     
-    def writerecord(recordnum, passengerid, fname, lname, age, ticketnum, fare, date):
-        pass
+    def write_blank(self,output_file):
+        with open(output_file, 'a') as file:
+            file.write('\n'.ljust(self.record_size))
+    # def writerecord(recordnum, passengerid, fname, lname, age, ticketnum, fare, date):
+    #     pass
         # writeRecord: a private helper method (it may be public if you need to call it from the main program)
         # parameter(s): recordNum, passengerid, fname, lname, age, ticketnum, fare, date
         # returns: int (-1 if the recordNum is invalid, 0 if it is valid and we overwrote an empty record, 1 if we overwrote a non-empty record
         # purpose: Using formatted writes, writes a fixed length record at the location indicated by recordNum.
 
-
-
-    def createDB(self, filename):          
-        for row in self.readCsv(self.name):
-            self.write_record(row, f"{filename}.data", self.record_size)
-            total_size +=self.record_size
-            self.write_record(['']*len(row), f"{filename}.data", self.record_size)
-            total_size +=self.record_size
+    def readCSV(self, filename): 
+        self.name = filename         
+        with open(f"{filename}.csv", 'r') as csvfile:
+            csv_reader = csv.reader(csvfile)
+            for row in csv_reader:
+                self.write_record(row, f"{filename}.data", self.record_size)
+                self.total_size += self.record_size
+                self.write_blank(f"{filename}.data")                
+                self.total_size += self.record_size
+                self.numRecords+=1
 
         with open(f"{filename}.config", 'w') as config_file:
-                config_file.write(str(self.numRecords) + '\n')
-                config_file.write(str(total_size) + '\n')
-        
-        self.isOpen = True
+            config_file.write(str(self.numRecords) + '\n')
+            config_file.write(str(self.total_size) + '\n')
+            config_file.close()
+    
+        self.isopen = True
 
     def read_record(self, recordnum):
-        self.flag = -1
+        self.flag = False
         p_id = fname = lname = age = t_num = fare = day_pur = "None"
-        id = experience = marriage = wage = industry = "None"
-
         if recordnum >= 0 and recordnum < self.numRecords:
-            self.data.loc[[recordnum]]
+            self.text_filename = f"{self.name}.data"
+            with open(self.text_filename, 'r') as file:
+                file.seek(0,0)
+                file.seek(recordnum*self.record_size)
+                line= file.readline().rstrip('\n')
             self.flag = True
+        else:
+            print("Record number out of range.")
+            return -1
 
         if self.flag:
-            p_id = self.data.loc[recordnum,'PASSENGER_ID']
-            fname = self.data.loc[recordnum,'FIRST_NAME']
-            lname = self.data.loc[recordnum,'LAST_NAME']
-            age = self.data.loc[recordnum,'AGE']
-            t_num = self.data.loc[recordnum,'TICKET_NUM']
-            fare = self.data.loc[recordnum,'FARE']
-            day_pur= self.data.loc[recordnum,'DATE_OF_PURCHASE']
-            self.record = dict(
-                {"PASSENGER_ID": p_id, "FIRST_NAME": fname, "LAST_NAME": lname, "AGE": age, "TICKET_NUM": t_num, "FARE": fare, "DAY_OF_PURCHASE":day_pur})
+            parts = line.split(',')
+            if len(parts)>=7:
+                print(parts)
+                p_id = parts[0]
+                fname = parts[1]
+                lname = parts[2]
+                age = parts[3]
+                t_num = parts[4]
+                fare = parts[5]
+                day_pur= parts[6]
+                self.record = dict(
+                    {"PASSENGER_ID": p_id, "FIRST_NAME": fname, "LAST_NAME": lname, "AGE": age, "TICKET_NUM": t_num, "FARE": fare, "DAY_OF_PURCHASE":day_pur})
+            else:
+                print("empty")
+            
+            # p_id = self.data.loc[recordnum,'PASSENGER_ID']
+            # fname = self.data.loc[recordnum,'FIRST_NAME']
+            # lname = self.data.loc[recordnum,'LAST_NAME']
+            # age = self.data.loc[recordnum,'AGE']
+            # t_num = self.data.loc[recordnum,'TICKET_NUM']
+            # fare = self.data.loc[recordnum,'FARE']
+            # day_pur= self.data.loc[recordnum,'DATE_OF_PURCHASE']
+            # self.record = dict(
+            #     {"PASSENGER_ID": p_id, "FIRST_NAME": fname, "LAST_NAME": lname, "AGE": age, "TICKET_NUM": t_num, "FARE": fare, "DAY_OF_PURCHASE":day_pur})
 
         # parse
         # readRecord: a private helper method (it may be public if you need to call it from the main program)
@@ -118,7 +139,9 @@ class DB:
             self.text_filename = open(self.filestream, 'r+')
 
     def open(self, name):
-        successful = False
+        if self.isopen:
+            print("Database already open. Please close it first.")
+            return True
         try:
             # Open config file to read numRecords and recordSize
             with open(f"{name}.config", 'r') as config_file:
@@ -126,12 +149,12 @@ class DB:
                 self.recordSize = int(config_file.readline().strip())
 
             # Open data file in read/write mode and set dataFileptr
-            self.dataFileptr = open(f"{name}.data", 'r+')
+            self.dataFileptr = open(f"{name}.data", 'r')
 
             # Update values in other instance variables
             # For example, you might want to do something like this:
             # self.some_other_instance_variable = some_value
-
+            self.name = name
             return True  # Return True if successful
         except Exception as e:
             print(f"Error opening database: {e}")
@@ -142,7 +165,10 @@ class DB:
 
     # close the database
     def close_db(self):
-        self.text_filename.close()
+        self.isopen = False
+        if self.filestream:
+            self.filestream.close()
+            self.filestream = None
 
     # parameter(s): none
     # returns: nothing
@@ -165,18 +191,15 @@ def main():
         choice = input("Enter your choice: ")
 
         if choice == '1':
-            db.createDB()
-            pass  # Implement this option
+            title = input("Enter the name of the database you'd like to create. It should be the name of the CSV file without the extension.\n")
+            db.readCSV(title)
         elif choice == '2':
             # Open database
             name = input("Enter the name of the database to open: ")
-            if db.isOpen():
-                print("Another database is already open. Please close it first.")
+            if db.open(name):
+                print("Database open.")
             else:
-                if db.open(name):
-                    print("Database opened successfully.")
-                else:
-                    print("Failed to open database.")
+                print("Failed to open database.")
         elif choice == '3':
             # Close database
             if db.isOpen():
@@ -185,8 +208,12 @@ def main():
             else:
                 print("No database is currently open.")
         elif choice == '4':
-            # Read record
-            pass  # Implement this option
+            name = input("Enter the record number you're searching for: ")
+            try:
+                userint = int(name)
+                db.read_record(userint)
+            except ValueError:
+                print("Input not an integer.")
         elif choice == '5':
             # Display record
             pass  # Implement this option
