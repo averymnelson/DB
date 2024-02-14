@@ -59,6 +59,7 @@ class DB:
                 file.seek(0, 0)
                 file.seek(recordnum * self.record_size)
                 line = file.readline().rstrip('\n')
+                line = line.strip()
             self.flag = True
         else:
             print("Record number out of range.")
@@ -75,20 +76,10 @@ class DB:
                 t_num = parts[4]
                 fare = parts[5]
                 day_pur = parts[6]
-                self.record = dict(
-                    {"PASSENGER_ID": p_id, "FIRST_NAME": fname, "LAST_NAME": lname, "AGE": age, "TICKET_NUM": t_num,
-                     "FARE": fare, "DAY_OF_PURCHASE": day_pur})
+                self.record = dict({"PASSENGER_ID": p_id, "FIRST_NAME": fname, "LAST_NAME": lname, "AGE": age, "TICKET_NUM": t_num,"FARE": fare, "DAY_OF_PURCHASE": day_pur})
             else:
                 print("empty")
 
-    def update_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
-        pass
-
-    def delete_record(self, passengerid):
-        pass
-
-    def add_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
-        pass
 
     def read_db(self, name, DBsize, rec_size):
         self.filestream = name + ".data"
@@ -122,6 +113,53 @@ class DB:
         if self.filestream:
             self.filestream.close()
             self.filestream = None
+    
+    def display_record(self):
+        pass
+
+    def create_report(self):
+        pass
+
+    def update_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
+        pass
+
+    def delete_record(self, passengerid):
+        pass
+
+    def add_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
+        pass
+
+    def binary_search(self, key):
+        low = 0
+        high = self.total_size // self.record_size - 1
+
+        # Perform binary search
+        while low <= high:
+            # Calculate the mid-point
+            mid = (low + high) // 2
+
+            # Read the record at the mid-point
+            record = self.read_record(mid)
+
+            # If the record is None or empty, move to the nearest non-empty record
+            while record is None or not record:
+                if low == high:
+                    return None  # Return None if all records are empty
+                mid += 1  # Move to the next record
+                record = self.read_record(mid)
+
+            # Extract the passenger ID from the record
+            mid_id = record.get("PASSENGER_ID")
+
+            # Compare the key with the mid record's passenger ID
+            if key == mid_id:
+                return mid  # Return the index if found
+            elif key < mid_id:
+                high = mid - 1  # Search in the left half
+            else:
+                low = mid + 1  # Search in the right half
+
+        return None  # Return None if key is not found
 
 
 def main():
@@ -163,8 +201,8 @@ def main():
             except ValueError:
                 print("Input not an integer.")
         elif choice == '5':
-            # Display record
-            pass
+            test = db.binary_search(44)
+            print(test)
         elif choice == '6':
             # Create report
             pass
