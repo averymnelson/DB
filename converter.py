@@ -11,7 +11,7 @@ class converter:
         csv_name = title +".csv"
         self.df = pd.read_csv(csv_name,sep=',', header = None)
         # df.to_csv('SmallTitanic.csv',header=None)
-        self.df.columns = ['PASSENGER_ID', 'FIRST_NAME', 'LAST_NAME', 'AGE', 'TICKET_NUM', 'FARE', 'DATE_OF_PURCHASE']
+        self.df.columns = ['ID', 'FIRST_NAME', 'LAST_NAME', 'AGE', 'TICKET_NUM', 'FARE', 'DATE_OF_PURCHASE']
         # print(self.df)
     
     def get_df(self):
