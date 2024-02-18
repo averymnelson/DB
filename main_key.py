@@ -55,7 +55,6 @@ def menu():
               print("Record "+ str(number) + ", ID: "+sample.record["ID"]+"\t first_name: "+sample.record["first_name"]+"\t last_name: "+sample.record["last_name"]+"\t age: "+str(sample.record["age"])+"\t ticket_num: "+sample.record["ticket_num"]+"\t fare: "+sample.record["fare"]+"\t date_of_purchase: "+sample.record["date_of_purchase"])
            else:
               print("Database is closed. Open to use.")
-
         elif choice == 5:
            print("Displaying record")
         elif choice == 6:
