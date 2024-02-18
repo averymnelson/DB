@@ -112,9 +112,10 @@ class DB:
         pass
 
     def update_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
-        found_record = self.binarySearch(int(passengerid))
-    # Check if the record was found
-        if found_record:
+        found_record_index = self.binarySearch(int(passengerid))
+        
+        # Check if the record was found
+        if found_record_index is not None:
             # Update the specific fields of the record in memory
             self.record["FIRST_NAME"] = fname
             self.record["LAST_NAME"] = lname
@@ -124,7 +125,21 @@ class DB:
             self.record["DAY_OF_PURCHASE"] = date
             
             # Write the updated record back to the file
-            self.write_record(self.record.values(), f"{self.name}.data", self.record_size)
+            record_start_pos = found_record_index * (self.record_size + 1)  # Add 1 to skip over the empty line
+            with open(f"{self.name}.data", 'r+') as file:
+                file.seek(record_start_pos)
+                line = file.readline().rstrip('\n')
+                parts = line.split(',')
+                parts[1] = fname
+                parts[2] = lname
+                parts[3] = age
+                parts[4] = ticketnum
+                parts[5] = fare
+                parts[6] = date
+                updated_line = ','.join(parts).ljust(self.record_size) + '\n'
+                file.seek(record_start_pos)
+                file.write(updated_line)
+            
             print("Record updated:", self.record)
         else:
             print("Record not found.")
@@ -165,85 +180,9 @@ class DB:
             "DAY_OF_PURCHASE": date
         }
         
-        # Find the correct position to insert the new record based on ID
-        position = self.find_insert_position(int(passengerid))
-        
-        # Insert the new record at the correct position
-        self.insert_record_at_position(new_record, position)
-        
-        print("Record added:", new_record)
-    
-    def find_insert_position(self, target_id):
-        low = 0
-        high = self.numRecords - 1
+        self.write_record(new_record, f"{self.name}.data", self.record_size)
+        print("Record cleared:", self.record)
 
-        while low <= high:
-            mid = (low + high) // 2
-            record_id = self.get_record_id(mid)
-
-            if record_id is None:
-                # Move to the nearest non-empty record
-                mid = self.find_nearest_non_empty(mid, low, high)
-                if mid is None:
-                    print("No non-empty record found.")
-                    return -1
-                else:
-                    record_id = self.get_record_id(mid)
-
-            if record_id == target_id:
-                return mid
-            elif record_id < target_id:
-                low = mid + 1
-            else:
-                high = mid - 1
-
-        return low
-    def get_record_id(self, index):
-        # Read the record ID at the given index
-        with open(f"{self.name}.data", 'r') as file:
-            file.seek(index * (self.record_size + 1))  # Move to the start of the record
-            line = file.readline().rstrip('\n')
-            parts = line.split(',')
-            try:
-                record_id = int(parts[0])
-                return record_id
-            except ValueError:
-                print("Error: Invalid record ID found in the data file.")
-                return None
-    
-    def find_nearest_non_empty(self, mid, low, high):
-        left = mid - 1
-        right = mid + 1
-
-        while left >= low or right <= high:
-            if left >= low:
-                record = self.read_record(left)
-                if record is not None:
-                    return left
-                left -= 1
-
-            if right <= high:
-                record = self.read_record(right)
-                if record is not None:
-                    return right
-                right += 1
-
-        return None
-            
-    def insert_record_at_position(self, new_record, position):
-        # Read all records from the file
-        with open(f"{self.name}.data", 'r') as file:
-            lines = file.readlines()
-
-        # Insert the new record at the specified position
-        lines.insert(position, ','.join(new_record.values()) + '\n')
-
-        # Write the modified lines back to the data file
-        with open(f"{self.name}.data", 'w') as file:
-            file.writelines(lines)
-
-        # Update the number of records
-        self.numRecords += 1
 
 # search and display record
     def binarySearch(self, target):
@@ -256,7 +195,6 @@ class DB:
             with open(f"{self.name}.data", 'r') as file:
                 file.seek(record_start_pos)
                 line = file.readline().rstrip('\n')
-                line = line.strip()
 
                 # Skip empty lines until a non-empty record is found
                 while not line.strip() and record_start_pos >= 0:
@@ -272,15 +210,13 @@ class DB:
                 parts = line.split(',')
                 if len(parts) >= 7 and int(parts[0]) == target:
                     print("Record found:", parts)
-                    return parts
+                    return
                 elif int(parts[0]) < target:
                     low = mid + 1
                 else:
                     high = mid - 1
 
         print("Record not found.")
-        return None
-
 
 def main():
     db = DB()
