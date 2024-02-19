@@ -22,10 +22,39 @@ class DB:
             formatted_data = ','.join(str(value) for value in data)
             file.write(formatted_data.ljust(record_size) + '\n')
 
+    def overwrite_record(self, data, output_file, record_size, record_number):
+        with open(output_file, 'r+') as file:
+            seek_position = record_number * record_size
+            file.seek(seek_position)
+            current_position = file.tell()
+            if current_position != seek_position:
+                # Adjust seek position to the beginning of the next record
+                file.seek(current_position + record_size)
+            formatted_data = ','.join(str(value) for value in data)
+            file.write(formatted_data.ljust(record_size) + '\n')
+
     def write_blank(self, output_file):
         with open(output_file, 'a') as file:
             file.write('\n'.ljust(self.record_size))
+    
+    def overwrite_blank(self, output_file, record_size, record_number):
+        with open(output_file, 'r+') as file:
+            seek_position = record_number * record_size
+            file.seek(seek_position)
+            current_position = file.tell()
+            if current_position != seek_position:
+                # Adjust seek position to the beginning of the next record
+                file.seek(current_position + record_size)
+            file.write('\n'.ljust(record_size))
 
+    def delete_blank_record(self, record_number):
+        with open(f"{self.name}.data", 'r+') as file:
+            # Calculate the seek position based on the record number and record size
+            seek_position = record_number * self.record_size
+            file.seek(seek_position)
+            
+            # Overwrite the blank record with blank data
+            file.write('\n' * self.record_size)
     def readCSV(self, filename):
         self.name = filename
         with open(f"{filename}.csv", 'r') as csvfile:
@@ -111,83 +140,86 @@ class DB:
     def create_report(self):
         pass
 
-    def update_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
-        found_record_index = self.binarySearch(int(passengerid))
-        
-        # Check if the record was found
-        if found_record_index is not None:
-            # Update the specific fields of the record in memory
-            self.record["FIRST_NAME"] = fname
-            self.record["LAST_NAME"] = lname
-            self.record["AGE"] = age
-            self.record["TICKET_NUM"] = ticketnum
-            self.record["FARE"] = fare
-            self.record["DAY_OF_PURCHASE"] = date
-            
-            # Write the updated record back to the file
-            record_start_pos = found_record_index * (self.record_size + 1)  # Add 1 to skip over the empty line
-            with open(f"{self.name}.data", 'r+') as file:
-                file.seek(record_start_pos)
-                line = file.readline().rstrip('\n')
-                parts = line.split(',')
-                parts[1] = fname
-                parts[2] = lname
-                parts[3] = age
-                parts[4] = ticketnum
-                parts[5] = fare
-                parts[6] = date
-                updated_line = ','.join(parts).ljust(self.record_size) + '\n'
-                file.seek(record_start_pos)
-                file.write(updated_line)
-            
-            print("Record updated:", self.record)
-        else:
-            print("Record not found.")
+    def display_record(self, passengerid):
+        num, found_record = self.binarySearch(int(passengerid))
+        print("Record found:", found_record)
 
-    def delete_record(self, passengerid):
-        found_record = self.binarySearch(int(passengerid))
-    # Check if the record was found
+    def update_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
+        # Find the record using binary search
+        num, found_record = self.binarySearch(int(passengerid))
+
+        # Check if the record was found
         if found_record:
             # Update the specific fields of the record in memory
-            self.record["ID"] = ""
-            self.record["FIRST_NAME"] = ""
-            self.record["LAST_NAME"] = ""
-            self.record["AGE"] = ""
-            self.record["TICKET_NUM"] = ""
-            self.record["FARE"] = ""
-            self.record["DAY_OF_PURCHASE"] = ""
+            found_record[1] = fname
+            found_record[2] = lname
+            found_record[3] = age
+            found_record[4] = ticketnum
+            found_record[5] = fare
+            found_record[6] = date
             
             # Write the updated record back to the file
-            self.write_record(self.record.values(), f"{self.name}.data", self.record_size)
-            print("Record cleared:", self.record)
+            self.overwrite_record(found_record, f"{self.name}.data", self.record_size, num)
+            print("Record updated:", found_record)
         else:
             print("Record not found.")
 
+    def delete_record(self, passenger_id):
+        # Find the record using binary search
+        record_number, found_record = self.binarySearch(int(passenger_id))
+
+        # Check if the record was found
+        if found_record:
+            with open(f"{self.name}.data", 'r+') as fp:
+    # read an store all lines into list
+                lines = fp.readlines()
+                # move file pointer to the beginning of a file
+                fp.seek(0)
+                # truncate the file
+                fp.truncate()
+
+                # start writing lines
+                # iterate line and line number
+                for number, line in enumerate(lines):
+                    # delete line number 5 and 8
+                    # note: list index start from 0
+                    if number not in [int(record_number), int(record_number+1)]:
+                        fp.write(line)
+                            
+            print("Record deleted:", found_record)
+            return True
+        else:
+            print("Record not found.")
+            return False
+
     def add_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
-        # Check if a record with the same ID already exists
-        if self.binarySearch(int(passengerid)):
+        closest_rec_num, found = self.binarySearch(int(passengerid))
+        if found:
             print("Record with the same ID already exists.")
             return
-        
-        # Create a new record dictionary
-        new_record = {
-            "ID": passengerid,
-            "FIRST_NAME": fname,
-            "LAST_NAME": lname,
-            "AGE": age,
-            "TICKET_NUM": ticketnum,
-            "FARE": fare,
-            "DAY_OF_PURCHASE": date
-        }
-        
-        self.write_record(new_record, f"{self.name}.data", self.record_size)
-        print("Record cleared:", self.record)
 
+        # Determine the position to insert the new record
+        if closest_rec_num is not None:
+            insert_pos = closest_rec_num - 1
+        else:
+            insert_pos = self.numRecords  # Insert at the end if no closest record found
+
+        # Shift existing records down to make space for the new record
+        self.overwrite_blank(f"{self.name}.data", self.record_size, insert_pos - 1)
+        self.overwrite_blank(f"{self.name}.data", self.record_size, insert_pos - 1)
+
+        # Write the new record
+        new_rec = [passengerid, fname, lname, age, ticketnum, fare, date]
+        self.overwrite_record(new_rec, f"{self.name}.data", self.record_size, insert_pos - 1)
+        self.overwrite_blank(f"{self.name}.data", self.record_size, insert_pos - 1)
+
+        print("Record added:", new_rec)
 
 # search and display record
     def binarySearch(self, target):
         low = 0
         high = self.numRecords - 1
+        closest_record_num = None
 
         while low <= high:
             mid = (low + high) // 2
@@ -209,14 +241,17 @@ class DB:
 
                 parts = line.split(',')
                 if len(parts) >= 7 and int(parts[0]) == target:
-                    print("Record found:", parts)
-                    return
+                    return mid, parts
                 elif int(parts[0]) < target:
                     low = mid + 1
                 else:
                     high = mid - 1
 
+                if closest_record_num is None or abs(int(parts[0]) - target) < abs(closest_record_num - target):
+                                closest_record_num = mid
+
         print("Record not found.")
+        return closest_record_num, None
 
 def main():
     db = DB()
@@ -261,40 +296,59 @@ def main():
             name = input("Enter the ID number you're searching for: ")
             try:
                 userint = int(name)
-                db.binarySearch(userint)
+                num, located = db.binarySearch(userint)
+                print("Record found:", located)
             except ValueError:
                 print("Input not an integer.")
         elif choice == '6':
             # Create report
             pass
         elif choice == '7':
+            locatedrec = None
             print("WARNING: the passenger ID number cannot be changed.\n")
             pid = input("Enter the Passenger ID number you'd like to update: ")
-            fname = input("Enter the new first name: ")
-            lname = input("Enter the new last name: ")
-            age = input("Enter the new age: ")
-            tnum = input("Enter the new ticket number: ")
-            fare = input("Enter the new fare: ")
-            date = input("Enter the new date of purchase: ")
-            db.update_record(pid,fname,lname,age,tnum,fare,date)
-        elif choice == '8':
-            name = input("Enter the passenger ID you'd like to delete the record for: ")
             try:
-                userint = int(name)
-                db.delete_record(userint)
+                userint = int(pid)
+                num, locatedrec = db.binarySearch(userint)
             except ValueError:
                 print("Input not an integer.")
+            if locatedrec:
+                fname = input("Enter the new first name: ")
+                lname = input("Enter the new last name: ")
+                age = input("Enter the new age: ")
+                tnum = input("Enter the new ticket number: ")
+                fare = input("Enter the new fare: ")
+                date = input("Enter the new date of purchase: ")
+                db.update_record(pid,fname,lname,age,tnum,fare,date)
+        elif choice == '8':
+            locatedrec = None
+            pid = input("Enter the Passenger ID number you'd like to delete: ")
+            try:
+                userint = int(pid)
+                num, locatedrec = db.binarySearch(userint)
+            except ValueError:
+                print("Input not an integer.")
+            if locatedrec:
+                db.delete_record(pid)
         elif choice == '9':
             print("You are adding a new record, assuming the ID you choose does not already have one.")
             pid = input("Enter the new Passenger ID: ")
-            fname = input("Enter the new first name: ")
-            lname = input("Enter the new last name: ")
-            age = input("Enter the new age: ")
-            tnum = input("Enter the new ticket number: ")
-            fare = input("Enter the new fare: ")
-            date = input("Enter the new date of purchase: ")
-            db.add_record(pid,fname,lname,age,tnum,fare,date)
+            try:
+                userint = int(pid)
+                num, locatedrec = db.binarySearch(userint)
+            except ValueError:
+                print("Input not an integer.")
+            if locatedrec is None:
+                fname = input("Enter the new first name: ")
+                lname = input("Enter the new last name: ")
+                age = input("Enter the new age: ")
+                tnum = input("Enter the new ticket number: ")
+                fare = input("Enter the new fare: ")
+                date = input("Enter the new date of purchase: ")
+                db.add_record(pid,fname,lname,age,tnum,fare,date)
         elif choice == '10':
+            if db.isOpen():
+                db.close_db()
             print("Exiting program.")
             break
         else:
