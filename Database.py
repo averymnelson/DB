@@ -1,6 +1,5 @@
 import csv
 import os.path
-from converter import converter
 
 
 class DB:
