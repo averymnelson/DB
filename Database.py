@@ -13,10 +13,17 @@ class DB:
         self.total_size = 0
         self.name = None
         self.isopen = False
+        self.fileptr = None
 
     def isOpen(self):
-        return self.isopen
+        if self.fileptr == None:
+            return False
+        else:
+            return True
 
+    def getName(self):
+        return self.name
+    
     def write_record(self, data, output_file, record_size):
         with open(output_file, 'a') as file:
             formatted_data = ','.join(str(value) for value in data)
@@ -123,7 +130,7 @@ class DB:
                 self.numRecords = int(config_file.readline().strip())
                 self.recordSize = int(config_file.readline().strip())
 
-            self.dataFileptr = open(f"{name}.data", 'r')
+            self.fileptr = open(f"{name}.data", 'r')
 
             self.name = name
             return True
@@ -133,12 +140,29 @@ class DB:
 
     def close_db(self):
         self.isopen = False
-        if self.filestream:
-            self.filestream.close()
+        if self.fileptr:
+            self.fileptr.close()
+            self.num_records = 0
+            self.record_size = 0
+            self.fileptr = None
             self.filestream = None
+            print("Database closed.")
 
     def create_report(self):
-        pass
+        filename = f"{self.name}.data"
+        with open(filename, 'r') as file:
+            for _ in range(20):
+                line = file.readline().rstrip('\n')
+                if line.strip():  # Check if the line is not empty
+                    parts = line.split(',')
+                    print("Passenger ID:", parts[0])
+                    print("First Name:", parts[1])
+                    print("Last Name:", parts[2])
+                    print("Age:", parts[3])
+                    print("Ticket Number:", parts[4])
+                    print("Fare:", parts[5])
+                    print("Date of Purchase:", parts[6])
+                    print()
 
     def display_record(self, passengerid):
         num, found_record = self.binarySearch(int(passengerid))
@@ -193,27 +217,58 @@ class DB:
             return False
 
     def add_record(self, passengerid, fname, lname, age, ticketnum, fare, date):
-        closest_rec_num, found = self.binarySearch(int(passengerid))
-        if found:
-            print("Record with the same ID already exists.")
-            return
+        new_record = [passengerid, fname, lname, age, ticketnum, fare, date]  # Create a list of record fields
+        filename = f"{self.name}.data"
 
-        # Determine the position to insert the new record
-        if closest_rec_num is not None:
-            insert_pos = closest_rec_num - 1
-        else:
-            insert_pos = self.numRecords  # Insert at the end if no closest record found
+        with open(filename, 'a') as file:
+            formatted_record = ','.join(map(str, new_record))  # Convert each field to string and join them with commas
+            file.write(formatted_record + '\n')  # Write the formatted record to the file
 
-        # Shift existing records down to make space for the new record
-        self.overwrite_blank(f"{self.name}.data", self.record_size, insert_pos - 1)
-        self.overwrite_blank(f"{self.name}.data", self.record_size, insert_pos - 1)
+        self.numRecords += 1
+        self.convert_data_to_csv()
 
-        # Write the new record
-        new_rec = [passengerid, fname, lname, age, ticketnum, fare, date]
-        self.overwrite_record(new_rec, f"{self.name}.data", self.record_size, insert_pos - 1)
-        self.overwrite_blank(f"{self.name}.data", self.record_size, insert_pos - 1)
+    def convert_data_to_csv(self):
+        unique_values = set()  # Set to store unique values
+        csv_filename = f"{self.name}.csv"  # Assuming the CSV file has the same name as the database
+        
+        # Read data from .data file and add unique non-empty records to CSV
+        with open(f"{self.name}.data", 'r') as data_file:
+            with open(csv_filename, 'w', newline='') as csv_file:
+                csv_writer = csv.writer(csv_file)
+                
+                # Iterate over each line in the .data file
+                for line in data_file:
+                    # Strip leading/trailing whitespace and check if the line is empty
+                    line = line.strip()
+                    if line:
+                        # Split the record into fields (assuming comma-separated)
+                        fields = line.split(',')
+                        
+                        # Check if the first field (or any other unique identifier) is already in the set
+                        if fields[0] not in unique_values:
+                            # Write the fields to the CSV file
+                            csv_writer.writerow(fields)
+                            
+                            # Add the value to the set to mark it as encountered
+                            unique_values.add(fields[0])
 
-        print("Record added:", new_rec)
+        # Sort the CSV file based on the first column (assuming Passenger ID)
+        self.sort_csv(csv_filename)
+
+    def sort_csv(self, csv_filename):
+        # Read the CSV file into a list of rows
+        with open(csv_filename, 'r', newline='') as csv_file:
+            csv_reader = csv.reader(csv_file)
+            rows = list(csv_reader)
+
+        # Sort the rows based on the first column (Passenger ID)
+        sorted_rows = sorted(rows, key=lambda x: int(x[0]))
+
+        # Write the sorted rows back to the CSV file
+        with open(csv_filename, 'w', newline='') as csv_file:
+            csv_writer = csv.writer(csv_file)
+            csv_writer.writerows(sorted_rows)
+
 
 # search and display record
     def binarySearch(self, target):
@@ -227,12 +282,14 @@ class DB:
             with open(f"{self.name}.data", 'r') as file:
                 file.seek(record_start_pos)
                 line = file.readline().rstrip('\n')
+                line = line.strip()
 
                 # Skip empty lines until a non-empty record is found
                 while not line.strip() and record_start_pos >= 0:
                     record_start_pos -= self.record_size + 1  # Add 1 to skip over the empty line
                     file.seek(record_start_pos)
                     line = file.readline().rstrip('\n')
+                    line = line.strip()
 
                 if not line.strip():
                     # If all previous records are empty, search in the upper half
@@ -240,6 +297,7 @@ class DB:
                     continue
 
                 parts = line.split(',')
+                # print("Debug - parts:", parts) 
                 if len(parts) >= 7 and int(parts[0]) == target:
                     return mid, parts
                 elif int(parts[0]) < target:
@@ -252,108 +310,3 @@ class DB:
 
         print("Record not found.")
         return closest_record_num, None
-
-def main():
-    db = DB()
-    while True:
-        print("Menu of operations:")
-        print("1) Create New Database")
-        print("2) Open Database")
-        print("3) Close Database")
-        print("4) Read Record")
-        print("5) Display Record")
-        print("6) Create Report")
-        print("7) Update Record")
-        print("8) Delete Record")
-        print("9) Add Record")
-        print("10) Quit")
-        choice = input("Enter your choice: ")
-
-        if choice == '1':
-            title = input(
-                "Enter the name of the database you'd like to create. It should be the name of the CSV file without the extension.\n")
-            db.readCSV(title)
-        elif choice == '2':
-            name = input("Enter the name of the database to open: ")
-            if db.open(name):
-                print("Database open.")
-            else:
-                print("Failed to open database.")
-        elif choice == '3':
-            if db.isOpen():
-                db.close_db()
-                print("Database closed.")
-            else:
-                print("No database is currently open.")
-        elif choice == '4':
-            name = input("Enter the record number you're searching for: ")
-            try:
-                userint = int(name)
-                db.read_record(userint)
-            except ValueError:
-                print("Input not an integer.")
-        elif choice == '5':
-            name = input("Enter the ID number you're searching for: ")
-            try:
-                userint = int(name)
-                num, located = db.binarySearch(userint)
-                print("Record found:", located)
-            except ValueError:
-                print("Input not an integer.")
-        elif choice == '6':
-            # Create report
-            pass
-        elif choice == '7':
-            locatedrec = None
-            print("WARNING: the passenger ID number cannot be changed.\n")
-            pid = input("Enter the Passenger ID number you'd like to update: ")
-            try:
-                userint = int(pid)
-                num, locatedrec = db.binarySearch(userint)
-            except ValueError:
-                print("Input not an integer.")
-            if locatedrec:
-                fname = input("Enter the new first name: ")
-                lname = input("Enter the new last name: ")
-                age = input("Enter the new age: ")
-                tnum = input("Enter the new ticket number: ")
-                fare = input("Enter the new fare: ")
-                date = input("Enter the new date of purchase: ")
-                db.update_record(pid,fname,lname,age,tnum,fare,date)
-        elif choice == '8':
-            locatedrec = None
-            pid = input("Enter the Passenger ID number you'd like to delete: ")
-            try:
-                userint = int(pid)
-                num, locatedrec = db.binarySearch(userint)
-            except ValueError:
-                print("Input not an integer.")
-            if locatedrec:
-                db.delete_record(pid)
-        elif choice == '9':
-            print("You are adding a new record, assuming the ID you choose does not already have one.")
-            pid = input("Enter the new Passenger ID: ")
-            try:
-                userint = int(pid)
-                num, locatedrec = db.binarySearch(userint)
-            except ValueError:
-                print("Input not an integer.")
-            if locatedrec is None:
-                fname = input("Enter the new first name: ")
-                lname = input("Enter the new last name: ")
-                age = input("Enter the new age: ")
-                tnum = input("Enter the new ticket number: ")
-                fare = input("Enter the new fare: ")
-                date = input("Enter the new date of purchase: ")
-                db.add_record(pid,fname,lname,age,tnum,fare,date)
-        elif choice == '10':
-            if db.isOpen():
-                db.close_db()
-            print("Exiting program.")
-            break
-        else:
-            print("Invalid selection. Please try again.")
-
-
-if __name__ == "__main__":
-    main()
